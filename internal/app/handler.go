@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Uchencho/hubuc/internal/db"
@@ -21,10 +22,15 @@ func CreateUserHandler(getUser db.GetUserByEmailFunc,
 			return
 		}
 
-		// if err := validateCreateUserRequest()
+		if err := validateCreateUserRequest(payload); err != nil {
+			log.Println(err)
+			serveError(w, err, http.StatusBadRequest)
+			return
+		}
 
 		wf := workflow.CreateUser(getUser, hashPassword, insertUser)
 		if err := wf(payload); err != nil {
+			log.Println(err)
 			serveError(w, err, http.StatusInternalServerError)
 			return
 		}
