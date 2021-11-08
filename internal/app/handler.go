@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Uchencho/hubuc/internal/db"
@@ -21,10 +22,41 @@ func CreateUserHandler(getUser db.GetUserByEmailFunc,
 			return
 		}
 
-		// if err := validateCreateUserRequest()
+		if err := validateCreateUserRequest(payload); err != nil {
+			log.Println(err)
+			serveError(w, err, http.StatusBadRequest)
+			return
+		}
 
 		wf := workflow.CreateUser(getUser, hashPassword, insertUser)
 		if err := wf(payload); err != nil {
+			log.Println(err)
+			serveError(w, err, http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func CreateUserV2Handler(flow workflow.CreateUserFlow) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var payload pkg.CreateUserRequest
+
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			serveError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		if err := validateCreateUserRequest(payload); err != nil {
+			log.Println(err)
+			serveError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		wf := workflow.CreateUserV2(flow)
+		if err := wf(payload); err != nil {
+			log.Println(err)
 			serveError(w, err, http.StatusInternalServerError)
 			return
 		}
